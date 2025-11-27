@@ -422,20 +422,24 @@
         function(position) {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          console.log('获取到用户位置:', lat, lon);
+          console.log('✅ 获取到用户位置:', lat, lon);
           initMap(lat, lon);
         },
         function(error) {
-          console.log('无法获取位置，使用默认位置:', error);
+          console.log('❌ 定位失败，错误:', error.code, error.message);
+          console.log('使用默认位置:', DEFAULT_LAT, DEFAULT_LON);
+          showToast('无法获取位置，使用默认位置', true);
           initMap(DEFAULT_LAT, DEFAULT_LON);
         },
         {
-          timeout: 5000,
+          enableHighAccuracy: true,
+          timeout: 15000,  // 增加超时时间到15秒
           maximumAge: 0
         }
       );
     } else {
       console.log('浏览器不支持地理定位，使用默认位置');
+      showToast('浏览器不支持定位，使用默认位置', true);
       initMap(DEFAULT_LAT, DEFAULT_LON);
     }
   };
