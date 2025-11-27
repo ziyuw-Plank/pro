@@ -458,32 +458,8 @@
   window.onload = function() {
     console.log('页面加载完成，开始获取位置...');
     
-    // 尝试获取用户位置
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        function(position) {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          console.log('✅ 获取到用户位置:', lat, lon);
-          initMap(lat, lon);
-        },
-        function(error) {
-          console.log('❌ 定位失败，错误:', error.code, error.message);
-          console.log('使用默认位置:', DEFAULT_LAT, DEFAULT_LON);
-          showToast('无法获取位置，使用默认位置', true);
-          initMap(DEFAULT_LAT, DEFAULT_LON);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,  // 增加超时时间到15秒
-          maximumAge: 0
-        }
-      );
-    } else {
-      console.log('浏览器不支持地理定位，使用默认位置');
-      showToast('浏览器不支持定位，使用默认位置', true);
-      initMap(DEFAULT_LAT, DEFAULT_LON);
-    }
+    // 先用默认位置初始化地图，然后再定位
+    initMap(DEFAULT_LAT, DEFAULT_LON);
   };
 </script>
 
