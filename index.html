@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选择位置</title>
 <style>
   * {
@@ -15,125 +16,321 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
     position: relative;
     overflow: hidden;
   }
-  body::before {
-    content: '';
-    position: absolute;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent);
-    border-radius: 50%;
-    top: -200px;
-    right: -200px;
-    animation: pulse 8s ease-in-out infinite;
-  }
-  body::after {
-    content: '';
-    position: absolute;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(147, 51, 234, 0.12), transparent);
-    border-radius: 50%;
-    bottom: -150px;
-    left: -150px;
-    animation: pulse 6s ease-in-out infinite reverse;
-  }
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(1.1); opacity: 0.8; }
-  }
-  h1 {
-    font-size: 2em;
-    margin-bottom: 40px;
-    color: #e2e8f0;
-    text-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
-    position: relative;
-    z-index: 1;
-    letter-spacing: 1px;
-  }
-  .container {
-    background: rgba(30, 41, 59, 0.6);
+  
+  .header {
+    background: rgba(30, 41, 59, 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    padding: 40px 50px;
-    border-radius: 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: grid;
-    gap: 15px;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     position: relative;
-    z-index: 1;
+    z-index: 10;
   }
-  button {
-    width: 220px;
-    padding: 12px;
-    font-size: 16px;
-    font-weight: 600;
+  
+  h1 {
+    font-size: 1.8em;
     color: #e2e8f0;
-    background: rgba(51, 65, 85, 0.5);
+    text-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
+    letter-spacing: 1px;
+  }
+  
+  .info {
+    margin-top: 10px;
+    color: #94a3b8;
+    font-size: 0.9em;
+  }
+  
+  #map-container {
+    flex: 1;
+    position: relative;
+    margin: 20px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  
+  .coord-display {
+    background: rgba(30, 41, 59, 0.95);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    padding: 12px 20px;
+    border-radius: 12px;
+    color: #e2e8f0;
+    font-size: 14px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .confirm-btn {
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: none;
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
     position: relative;
     overflow: hidden;
   }
-  button::before {
+  
+  .confirm-btn::before {
     content: '';
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     transition: left 0.5s ease;
   }
-  button:hover::before {
+  
+  .confirm-btn:hover::before {
     left: 100%;
   }
-  button:hover {
-    background: rgba(59, 130, 246, 0.3);
-    border-color: rgba(59, 130, 246, 0.5);
+  
+  .confirm-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    color: #fff;
+    box-shadow: 0 6px 25px rgba(59, 130, 246, 0.5);
   }
-  button:active {
+  
+  .confirm-btn:active {
     transform: translateY(0);
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+  }
+  
+  .loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #e2e8f0;
+    font-size: 1.2em;
+    z-index: 1000;
+    text-align: center;
+  }
+  
+  .spinner {
+    border: 3px solid rgba(59, 130, 246, 0.3);
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .locate-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    width: 40px;
+    height: 40px;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+  
+  .locate-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    transform: scale(1.1);
   }
 </style>
 </head>
 <body>
-<h1>选择查询地点</h1>
-<div class="container">
-  <button onclick="go(32.100564, 118.911458)">格物楼东侧</button>
-  <button onclick="go(32.101014, 118.911399)">行建楼东侧</button>
-  <button onclick="go(32.102296, 118.911095)">学明楼</button>
-  <button onclick="go(32.102681, 118.912134)">学正楼</button>
-  <button onclick="go(32.102433, 118.914265)">学海楼东</button>
-  <button onclick="go(32.102124, 118.913439)">学海楼西</button>
-  <button onclick="go(32.101316, 118.913393)">厚生楼北</button>
-  <button onclick="go(32.101925, 118.907547)">西区食堂</button>
-  <button onclick="go(32.105940, 118.913251)">东区食堂</button>
-  <button onclick="go(32.113876, 118.913935)">北区食堂近点</button>
-  <button onclick="go(32.113620, 118.914630)">北区食堂远点</button>
-  <button onclick="go(32.106572, 118.911203)">起霞坡</button>
-  <button onclick="go(32.115269, 118.915311)">北苑37栋东侧</button>
-  <button onclick="go(32.103828, 118.912787)">美术馆</button>
+<div class="header">
+  <h1>选择位置</h1>
+  <div class="info">点击地图选择位置，或点击右上角图标定位到当前位置</div>
 </div>
+
+<div id="map-container">
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <div>正在加载地图...</div>
+  </div>
+  <div id="map"></div>
+  <button class="locate-btn" onclick="locateMe()" title="定位到我的位置">📍</button>
+  <div class="controls">
+    <div class="coord-display" id="coord-display">
+      点击地图选择位置
+    </div>
+    <button class="confirm-btn" onclick="confirmLocation()" id="confirm-btn" disabled>
+      确认选择
+    </button>
+  </div>
+</div>
+
+<script src="https://webapi.amap.com/maps?v=2.0&key=d124d3ae2818bf6f9f005f2ed106fbe5"></script>
 <script>
-function go(lat, lon) {
-  window.location.href = `run.html?lat=${lat}&lon=${lon}`;
-}
+  let map;
+  let marker;
+  let selectedLat = null;
+  let selectedLon = null;
+  
+  // 默认位置（南京大学仙林校区）- 请根据需要修改
+  const DEFAULT_LAT = 32.103828;
+  const DEFAULT_LON = 118.912787;
+  
+  function initMap(lat, lon) {
+    map = new AMap.Map('map', {
+      zoom: 16,
+      center: [lon, lat],
+      mapStyle: 'amap://styles/dark'
+    });
+    
+    // 添加工具条
+    map.addControl(new AMap.Scale());
+    map.addControl(new AMap.ToolBar());
+    
+    // 点击地图选择位置
+    map.on('click', function(e) {
+      const lng = e.lnglat.getLng();
+      const lat = e.lnglat.getLat();
+      
+      selectedLat = lat;
+      selectedLon = lng;
+      
+      // 更新或创建标记
+      if (marker) {
+        marker.setPosition([lng, lat]);
+      } else {
+        marker = new AMap.Marker({
+          position: [lng, lat],
+          map: map,
+          animation: 'AMAP_ANIMATION_DROP'
+        });
+      }
+      
+      // 更新坐标显示
+      document.getElementById('coord-display').textContent = 
+        `纬度: ${lat.toFixed(6)}, 经度: ${lng.toFixed(6)}`;
+      
+      // 启用确认按钮
+      document.getElementById('confirm-btn').disabled = false;
+    });
+    
+    // 隐藏加载提示
+    document.getElementById('loading').style.display = 'none';
+  }
+  
+  function locateMe() {
+    if (navigator.geolocation) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('loading').innerHTML = 
+        '<div class="spinner"></div><div>正在获取位置...</div>';
+      
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          
+          // 移动地图中心
+          map.setCenter([lon, lat]);
+          
+          // 添加标记
+          if (marker) {
+            marker.setPosition([lon, lat]);
+          } else {
+            marker = new AMap.Marker({
+              position: [lon, lat],
+              map: map,
+              animation: 'AMAP_ANIMATION_DROP'
+            });
+          }
+          
+          selectedLat = lat;
+          selectedLon = lon;
+          
+          document.getElementById('coord-display').textContent = 
+            `纬度: ${lat.toFixed(6)}, 经度: ${lon.toFixed(6)}`;
+          document.getElementById('confirm-btn').disabled = false;
+          document.getElementById('loading').style.display = 'none';
+        },
+        function(error) {
+          console.error('定位失败:', error);
+          alert('定位失败: ' + error.message);
+          document.getElementById('loading').style.display = 'none';
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      alert('您的浏览器不支持地理定位');
+    }
+  }
+  
+  function confirmLocation() {
+    if (selectedLat && selectedLon) {
+      window.location.href = `run.html?lat=${selectedLat}&lon=${selectedLon}`;
+    }
+  }
+  
+  // 页面加载时初始化
+  window.onload = function() {
+    // 尝试获取用户位置
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          initMap(lat, lon);
+        },
+        function(error) {
+          console.log('无法获取位置，使用默认位置:', error);
+          initMap(DEFAULT_LAT, DEFAULT_LON);
+        },
+        {
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      console.log('浏览器不支持地理定位，使用默认位置');
+      initMap(DEFAULT_LAT, DEFAULT_LON);
+    }
+  };
 </script>
 </body>
 </html>
