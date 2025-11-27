@@ -10,21 +10,21 @@
     margin: 0;
     padding: 0;
   }
-  body {
-    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: linear-gradient(135deg, #0f172a, #1e293b, #334155);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    position: relative;
+  
+  html, body {
+    margin: 0;
+    height: 100%;
     overflow: hidden;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   }
   
   .header {
-    background: rgba(30, 41, 59, 0.8);
+    background: rgba(30, 41, 59, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    padding: 20px;
+    padding: 16px 20px;
     text-align: center;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -33,35 +33,26 @@
   }
   
   h1 {
-    font-size: 1.8em;
+    font-size: 1.5em;
     color: #e2e8f0;
     text-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
     letter-spacing: 1px;
+    margin: 0;
   }
   
   .info {
-    margin-top: 10px;
+    margin-top: 8px;
     color: #94a3b8;
-    font-size: 0.9em;
-  }
-  
-  #map-container {
-    flex: 1;
-    position: relative;
-    margin: 20px;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.85em;
   }
   
   #map {
     width: 100%;
-    height: 100%;
+    height: calc(100% - 70px);
   }
   
   .controls {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
@@ -69,6 +60,9 @@
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 90%;
   }
   
   .coord-display {
@@ -128,35 +122,43 @@
     transform: none;
   }
   
-  .loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #e2e8f0;
-    font-size: 1.2em;
-    z-index: 1000;
-    text-align: center;
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    backdrop-filter: blur(5px);
   }
   
   .spinner {
-    border: 3px solid rgba(59, 130, 246, 0.3);
-    border-top: 3px solid #3b82f6;
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(59, 130, 246, 0.2);
+    border-top-color: #3b82f6;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
     animation: spin 1s linear infinite;
-    margin: 0 auto 10px;
   }
   
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  .loading-text {
+    margin-top: 20px;
+    font-size: 16px;
+    color: #3b82f6;
   }
   
   .locate-btn {
-    position: absolute;
-    top: 20px;
+    position: fixed;
+    top: 90px;
     right: 20px;
     z-index: 100;
     width: 40px;
@@ -180,45 +182,240 @@
     background: rgba(59, 130, 246, 0.2);
     transform: scale(1.1);
   }
+  
+  @media (max-width: 768px) {
+    .controls {
+      flex-direction: column;
+      bottom: 10px;
+    }
+    
+    .coord-display {
+      font-size: 12px;
+      padding: 10px 16px;
+    }
+  }
 </style>
+
+<script src="https://webapi.amap.com/maps?v=2.0&key=d124d3ae2818bf6f9f005f2ed106fbe5"></script>
 </head>
 <body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">正在加载地图...</div>
+</div>
+
 <div class="header">
   <h1>选择位置</h1>
   <div class="info">点击地图选择位置，或点击右上角图标定位到当前位置</div>
 </div>
 
-<div id="map-container">
-  <div id="loading" class="loading">
-    <div class="spinner"></div>
-    <div>正在加载地图...</div>
+<div id="map"></div>
+
+<button class="locate-btn" onclick="locateMe()" title="定位到我的位置">📍</button>
+
+<div class="controls">
+  <div class="coord-display" id="coord-display">
+    点击地图选择位置
   </div>
-  <div id="map"></div>
-  <button class="locate-btn" onclick="locateMe()" title="定位到我的位置">📍</button>
-  <div class="controls">
-    <div class="coord-display" id="coord-display">
-      点击地图选择位置
-    </div>
-    <button class="confirm-btn" onclick="confirmLocation()" id="confirm-btn" disabled>
-      确认选择
-    </button>
-  </div>
+  <button class="confirm-btn" onclick="confirmLocation()" id="confirm-btn" disabled>
+    确认选择
+  </button>
 </div>
 
-<script src="https://webapi.amap.com/maps?v=2.0&key=d124d3ae2818bf6f9f005f2ed106fbe5&callback=onMapLoaded"></script>
 <script>
-  let map;
-  let marker;
+  let map = null;
+  let marker = null;
   let selectedLat = null;
   let selectedLon = null;
   
-  // 默认位置（南京大学仙林校区）- 请根据需要修改
+  // 默认位置（南京大学仙林校区）
   const DEFAULT_LAT = 32.103828;
   const DEFAULT_LON = 118.912787;
   
-  // 地图加载完成的回调函数
-  window.onMapLoaded = function() {
-    console.log('高德地图API加载完成');
+  function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+      overlay.style.opacity = '0';
+      overlay.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => {
+        if (overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+      }, 300);
+    }
+  }
+  
+  function showToast(message, isError = false) {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(34, 197, 94, 0.95)'};
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px ${isError ? 'rgba(239, 68, 68, 0.4)' : 'rgba(34, 197, 94, 0.4)'};
+      z-index: 2000;
+      backdrop-filter: blur(10px);
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          document.body.removeChild(toast);
+        }
+      }, 300);
+    }, 2500);
+  }
+  
+  function initMap(lat, lon) {
+    try {
+      console.log('开始初始化地图...', lat, lon);
+      
+      map = new AMap.Map("map", {
+        viewMode: "3D",
+        zoom: 15,
+        center: [lon, lat],
+        mapStyle: "amap://styles/dark",
+        pitch: 0,
+        rotation: 0
+      });
+      
+      console.log('地图创建成功');
+      
+      // 添加基准点标记（用户位置或默认位置）
+      const startMarker = new AMap.Marker({
+        position: [lon, lat],
+        map: map,
+        icon: new AMap.Icon({
+          image: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png",
+          size: new AMap.Size(30, 40),
+          imageSize: new AMap.Size(30, 40)
+        }),
+        title: "起始位置",
+        zIndex: 1000
+      });
+      
+      // 点击地图选择位置
+      map.on('click', function(e) {
+        const lng = e.lnglat.getLng();
+        const lat = e.lnglat.getLat();
+        
+        console.log('点击位置:', lat, lng);
+        
+        selectedLat = lat;
+        selectedLon = lng;
+        
+        // 更新或创建标记
+        if (marker) {
+          marker.setPosition([lng, lat]);
+        } else {
+          marker = new AMap.Marker({
+            position: [lng, lat],
+            map: map,
+            animation: 'AMAP_ANIMATION_DROP',
+            icon: new AMap.Icon({
+              image: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+              size: new AMap.Size(25, 34),
+              imageSize: new AMap.Size(25, 34)
+            })
+          });
+        }
+        
+        // 更新坐标显示
+        document.getElementById('coord-display').textContent = 
+          `纬度: ${lat.toFixed(6)}, 经度: ${lng.toFixed(6)}`;
+        
+        // 启用确认按钮
+        document.getElementById('confirm-btn').disabled = false;
+      });
+      
+      hideLoading();
+      showToast('地图加载成功');
+      
+    } catch (error) {
+      console.error('地图初始化失败:', error);
+      hideLoading();
+      showToast('地图初始化失败: ' + error.message, true);
+    }
+  }
+  
+  function locateMe() {
+    if (!map) {
+      showToast('地图还未加载完成', true);
+      return;
+    }
+    
+    if (navigator.geolocation) {
+      showToast('正在获取位置...');
+      
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          
+          console.log('获取到位置:', lat, lon);
+          
+          // 移动地图中心
+          map.setCenter([lon, lat]);
+          
+          // 添加或更新标记
+          if (marker) {
+            marker.setPosition([lon, lat]);
+          } else {
+            marker = new AMap.Marker({
+              position: [lon, lat],
+              map: map,
+              animation: 'AMAP_ANIMATION_DROP',
+              icon: new AMap.Icon({
+                image: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+                size: new AMap.Size(25, 34),
+                imageSize: new AMap.Size(25, 34)
+              })
+            });
+          }
+          
+          selectedLat = lat;
+          selectedLon = lon;
+          
+          document.getElementById('coord-display').textContent = 
+            `纬度: ${lat.toFixed(6)}, 经度: ${lon.toFixed(6)}`;
+          document.getElementById('confirm-btn').disabled = false;
+          
+          showToast('定位成功');
+        },
+        function(error) {
+          console.error('定位失败:', error);
+          showToast('定位失败: ' + error.message, true);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      showToast('您的浏览器不支持地理定位', true);
+    }
+  }
+  
+  function confirmLocation() {
+    if (selectedLat && selectedLon) {
+      window.location.href = `run.html?lat=${selectedLat}&lon=${selectedLon}`;
+    }
+  }
+  
+  // 页面加载完成后初始化
+  window.onload = function() {
+    console.log('页面加载完成，开始获取位置...');
+    
     // 尝试获取用户位置
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -242,116 +439,7 @@
       initMap(DEFAULT_LAT, DEFAULT_LON);
     }
   };
-  
-  function initMap(lat, lon) {
-    try {
-      map = new AMap.Map('map', {
-        zoom: 16,
-        center: [lon, lat],
-        mapStyle: 'amap://styles/dark'
-      });
-      
-      // 添加工具条
-      map.addControl(new AMap.Scale());
-      map.addControl(new AMap.ToolBar());
-      
-      // 点击地图选择位置
-      map.on('click', function(e) {
-        const lng = e.lnglat.getLng();
-        const lat = e.lnglat.getLat();
-        
-        selectedLat = lat;
-        selectedLon = lng;
-        
-        // 更新或创建标记
-        if (marker) {
-          marker.setPosition([lng, lat]);
-        } else {
-          marker = new AMap.Marker({
-            position: [lng, lat],
-            map: map,
-            animation: 'AMAP_ANIMATION_DROP'
-          });
-        }
-        
-        // 更新坐标显示
-        document.getElementById('coord-display').textContent = 
-          `纬度: ${lat.toFixed(6)}, 经度: ${lng.toFixed(6)}`;
-        
-        // 启用确认按钮
-        document.getElementById('confirm-btn').disabled = false;
-      });
-      
-      // 隐藏加载提示
-      document.getElementById('loading').style.display = 'none';
-      
-      console.log('地图初始化成功');
-    } catch (error) {
-      console.error('地图初始化失败:', error);
-      document.getElementById('loading').innerHTML = 
-        '<div style="color: #ef4444;">地图加载失败，请刷新页面重试</div>';
-    }
-  }
-  
-  function locateMe() {
-    if (!map) {
-      alert('地图还未加载完成，请稍候');
-      return;
-    }
-    
-    if (navigator.geolocation) {
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('loading').innerHTML = 
-        '<div class="spinner"></div><div>正在获取位置...</div>';
-      
-      navigator.geolocation.getCurrentPosition(
-        function(position) {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          
-          // 移动地图中心
-          map.setCenter([lon, lat]);
-          
-          // 添加标记
-          if (marker) {
-            marker.setPosition([lon, lat]);
-          } else {
-            marker = new AMap.Marker({
-              position: [lon, lat],
-              map: map,
-              animation: 'AMAP_ANIMATION_DROP'
-            });
-          }
-          
-          selectedLat = lat;
-          selectedLon = lon;
-          
-          document.getElementById('coord-display').textContent = 
-            `纬度: ${lat.toFixed(6)}, 经度: ${lon.toFixed(6)}`;
-          document.getElementById('confirm-btn').disabled = false;
-          document.getElementById('loading').style.display = 'none';
-        },
-        function(error) {
-          console.error('定位失败:', error);
-          alert('定位失败: ' + error.message);
-          document.getElementById('loading').style.display = 'none';
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    } else {
-      alert('您的浏览器不支持地理定位');
-    }
-  }
-  
-  function confirmLocation() {
-    if (selectedLat && selectedLon) {
-      window.location.href = `run.html?lat=${selectedLat}&lon=${selectedLon}`;
-    }
-  }
 </script>
+
 </body>
 </html>
