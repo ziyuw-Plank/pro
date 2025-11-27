@@ -122,6 +122,12 @@
     transform: translateY(0);
   }
   
+  .confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
   .loading {
     position: absolute;
     top: 50%;
@@ -199,7 +205,7 @@
   </div>
 </div>
 
-<script src="https://webapi.amap.com/maps?v=2.0&key=d124d3ae2818bf6f9f005f2ed106fbe5"></script>
+<script src="https://webapi.amap.com/maps?v=2.0&key=d124d3ae2818bf6f9f005f2ed106fbe5&callback=onMapLoaded"></script>
 <script>
   let map;
   let marker;
@@ -210,49 +216,89 @@
   const DEFAULT_LAT = 32.103828;
   const DEFAULT_LON = 118.912787;
   
+  // 地图加载完成的回调函数
+  window.onMapLoaded = function() {
+    console.log('高德地图API加载完成');
+    // 尝试获取用户位置
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          console.log('获取到用户位置:', lat, lon);
+          initMap(lat, lon);
+        },
+        function(error) {
+          console.log('无法获取位置，使用默认位置:', error);
+          initMap(DEFAULT_LAT, DEFAULT_LON);
+        },
+        {
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      console.log('浏览器不支持地理定位，使用默认位置');
+      initMap(DEFAULT_LAT, DEFAULT_LON);
+    }
+  };
+  
   function initMap(lat, lon) {
-    map = new AMap.Map('map', {
-      zoom: 16,
-      center: [lon, lat],
-      mapStyle: 'amap://styles/dark'
-    });
-    
-    // 添加工具条
-    map.addControl(new AMap.Scale());
-    map.addControl(new AMap.ToolBar());
-    
-    // 点击地图选择位置
-    map.on('click', function(e) {
-      const lng = e.lnglat.getLng();
-      const lat = e.lnglat.getLat();
+    try {
+      map = new AMap.Map('map', {
+        zoom: 16,
+        center: [lon, lat],
+        mapStyle: 'amap://styles/dark'
+      });
       
-      selectedLat = lat;
-      selectedLon = lng;
+      // 添加工具条
+      map.addControl(new AMap.Scale());
+      map.addControl(new AMap.ToolBar());
       
-      // 更新或创建标记
-      if (marker) {
-        marker.setPosition([lng, lat]);
-      } else {
-        marker = new AMap.Marker({
-          position: [lng, lat],
-          map: map,
-          animation: 'AMAP_ANIMATION_DROP'
-        });
-      }
+      // 点击地图选择位置
+      map.on('click', function(e) {
+        const lng = e.lnglat.getLng();
+        const lat = e.lnglat.getLat();
+        
+        selectedLat = lat;
+        selectedLon = lng;
+        
+        // 更新或创建标记
+        if (marker) {
+          marker.setPosition([lng, lat]);
+        } else {
+          marker = new AMap.Marker({
+            position: [lng, lat],
+            map: map,
+            animation: 'AMAP_ANIMATION_DROP'
+          });
+        }
+        
+        // 更新坐标显示
+        document.getElementById('coord-display').textContent = 
+          `纬度: ${lat.toFixed(6)}, 经度: ${lng.toFixed(6)}`;
+        
+        // 启用确认按钮
+        document.getElementById('confirm-btn').disabled = false;
+      });
       
-      // 更新坐标显示
-      document.getElementById('coord-display').textContent = 
-        `纬度: ${lat.toFixed(6)}, 经度: ${lng.toFixed(6)}`;
+      // 隐藏加载提示
+      document.getElementById('loading').style.display = 'none';
       
-      // 启用确认按钮
-      document.getElementById('confirm-btn').disabled = false;
-    });
-    
-    // 隐藏加载提示
-    document.getElementById('loading').style.display = 'none';
+      console.log('地图初始化成功');
+    } catch (error) {
+      console.error('地图初始化失败:', error);
+      document.getElementById('loading').innerHTML = 
+        '<div style="color: #ef4444;">地图加载失败，请刷新页面重试</div>';
+    }
   }
   
   function locateMe() {
+    if (!map) {
+      alert('地图还未加载完成，请稍候');
+      return;
+    }
+    
     if (navigator.geolocation) {
       document.getElementById('loading').style.display = 'block';
       document.getElementById('loading').innerHTML = 
@@ -306,31 +352,6 @@
       window.location.href = `run.html?lat=${selectedLat}&lon=${selectedLon}`;
     }
   }
-  
-  // 页面加载时初始化
-  window.onload = function() {
-    // 尝试获取用户位置
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        function(position) {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          initMap(lat, lon);
-        },
-        function(error) {
-          console.log('无法获取位置，使用默认位置:', error);
-          initMap(DEFAULT_LAT, DEFAULT_LON);
-        },
-        {
-          timeout: 5000,
-          maximumAge: 0
-        }
-      );
-    } else {
-      console.log('浏览器不支持地理定位，使用默认位置');
-      initMap(DEFAULT_LAT, DEFAULT_LON);
-    }
-  };
 </script>
 </body>
 </html>
