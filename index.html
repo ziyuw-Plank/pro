@@ -288,16 +288,120 @@
         rotation: 0
       });
       
-      console.log('地图创建成功');
+      console.log('地图创建成功，等待地图加载完成...');
       
-      // 使用高德自带的定位插件（比浏览器定位更准确）
-      AMap.plugin('AMap.Geolocation', function() {
-        const geolocation = new AMap.Geolocation({
-          enableHighAccuracy: true,  // 高精度定位
-          timeout: 10000,            // 超时时间
-          buttonOffset: new AMap.Pixel(10, 20),  // 定位按钮位置
-          zoomToAccuracy: true,      // 定位成功后调整地图视野
-          showButton: false          // 不显示默认按钮（我们自己做了）
+      // 添加初始位置标记
+      window.startMarker = new AMap.Marker({
+        position: [lon, lat],
+        map: map,
+        icon: new AMap.Icon({
+          image: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png",
+          size: new AMap.Size(30, 40),
+          imageSize: new AMap.Size(30, 40)
+        }),
+        title: "默认位置",
+        zIndex: 1000
+      });
+      
+      // 等待地图加载完成后再执行定位
+      map.on('complete', function() {
+        console.log('=== 地图加载完成，开始定位 ===');
+        
+        // 使用浏览器定位获取GPS坐标
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              const wgs84_lat = position.coords.latitude;
+              const wgs84_lon = position.coords.longitude;
+              
+              console.log('✓ 获取到GPS坐标（WGS-84）:', wgs84_lat, wgs84_lon);
+              console.log('⚠️ 开始转换为高德坐标系（GCJ-02）...');
+              
+              // 使用高德API将WGS-84转换为GCJ-02
+              AMap.convertFrom([wgs84_lon, wgs84_lat], 'gps', function(status, result) {
+                if (status === 'complete' && result.info === 'ok') {
+                  const gcj02_lnglat = result.locations[0];
+                  console.log('✅✅✅ 坐标转换成功! ✅✅✅');
+                  console.log('转换后的坐标（GCJ-02）:', gcj02_lnglat.lat, gcj02_lnglat.lng);
+                  console.log('偏移距离:', Math.round(
+                    AMap.GeometryUtil.distance(
+                      [wgs84_lon, wgs84_lat],
+                      [gcj02_lnglat.lng, gcj02_lnglat.lat]
+                    )
+                  ), '米');
+                  
+                  // 移动地图到准确位置
+                  map.setZoomAndCenter(15, [gcj02_lnglat.lng, gcj02_lnglat.lat]);
+                  
+                  // 更新标记位置
+                  window.startMarker.setPosition([gcj02_lnglat.lng, gcj02_lnglat.lat]);
+                  window.startMarker.setTitle("我的位置（已纠偏）");
+                  
+                  showToast('✅ 定位成功，坐标已纠偏');
+                } else {
+                  console.log('❌ 坐标转换失败:', result);
+                  showToast('坐标转换失败，显示默认位置', true);
+                }
+              });
+            },
+            function(error) {
+              console.log('❌ GPS定位失败:', error.message);
+              showToast('定位失败，显示默认位置', true);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 0
+            }
+          );
+        } else {
+          console.log('❌ 浏览器不支持定位');
+          showToast('浏览器不支持定位', true);
+        }
+      });
+      
+      // 点击地图选择位置
+      map.on('click', function(e) {
+        const lng = e.lnglat.getLng();
+        const lat = e.lnglat.getLat();
+        
+        console.log('点击位置:', lat, lng);
+        
+        selectedLat = lat;
+        selectedLon = lng;
+        
+        // 更新或创建标记
+        if (marker) {
+          marker.setPosition([lng, lat]);
+        } else {
+          marker = new AMap.Marker({
+            position: [lng, lat],
+            map: map,
+            animation: 'AMAP_ANIMATION_DROP',
+            icon: new AMap.Icon({
+              image: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+              size: new AMap.Size(25, 34),
+              imageSize: new AMap.Size(25, 34)
+            })
+          });
+        }
+        
+        // 更新坐标显示
+        document.getElementById('coord-display').textContent = 
+          `纬度: ${lat.toFixed(6)}, 经度: ${lng.toFixed(6)}`;
+        
+        // 启用确认按钮
+        document.getElementById('confirm-btn').disabled = false;
+      });
+      
+      hideLoading();
+      
+    } catch (error) {
+      console.error('地图初始化失败:', error);
+      hideLoading();
+      showToast('地图初始化失败: ' + error.message, true);
+    }
+  }）
         });
         
         // 尝试自动定位一次
@@ -397,55 +501,70 @@
     
     showToast('正在重新定位...');
     
-    // 使用高德定位插件
-    AMap.plugin('AMap.Geolocation', function() {
-      const geolocation = new AMap.Geolocation({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        zoomToAccuracy: true
-      });
-      
-      geolocation.getCurrentPosition(function(status, result) {
-        if (status === 'complete') {
-          const lat = result.position.lat;
-          const lon = result.position.lng;
+    // 使用浏览器定位 + 坐标转换
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const wgs84_lat = position.coords.latitude;
+          const wgs84_lon = position.coords.longitude;
           
-          console.log('✅ 重新定位成功:', lat, lon);
-          console.log('定位精度:', result.accuracy, '米');
+          console.log('✓ 获取到GPS坐标（WGS-84）:', wgs84_lat, wgs84_lon);
           
-          // 移动地图中心
-          map.setCenter([lon, lat]);
-          
-          // 添加或更新标记
-          if (marker) {
-            marker.setPosition([lon, lat]);
-          } else {
-            marker = new AMap.Marker({
-              position: [lon, lat],
-              map: map,
-              animation: 'AMAP_ANIMATION_DROP',
-              icon: new AMap.Icon({
-                image: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
-                size: new AMap.Size(25, 34),
-                imageSize: new AMap.Size(25, 34)
-              })
-            });
-          }
-          
-          selectedLat = lat;
-          selectedLon = lon;
-          
-          document.getElementById('coord-display').textContent = 
-            `纬度: ${lat.toFixed(6)}, 经度: ${lon.toFixed(6)}`;
-          document.getElementById('confirm-btn').disabled = false;
-          
-          showToast('定位成功，精度约' + Math.round(result.accuracy) + '米');
-        } else {
-          console.error('❌ 定位失败:', result);
-          showToast('定位失败: ' + (result.message || '未知错误'), true);
+          // 转换为GCJ-02坐标
+          AMap.convertFrom([wgs84_lon, wgs84_lat], 'gps', function(status, result) {
+            if (status === 'complete' && result.info === 'ok') {
+              const gcj02_lnglat = result.locations[0];
+              const lat = gcj02_lnglat.lat;
+              const lon = gcj02_lnglat.lng;
+              
+              console.log('✅ 坐标转换成功（GCJ-02）:', lat, lon);
+              
+              // 移动地图中心
+              map.setCenter([lon, lat]);
+              
+              // 添加或更新标记
+              if (marker) {
+                marker.setPosition([lon, lat]);
+              } else {
+                marker = new AMap.Marker({
+                  position: [lon, lat],
+                  map: map,
+                  animation: 'AMAP_ANIMATION_DROP',
+                  icon: new AMap.Icon({
+                    image: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+                    size: new AMap.Size(25, 34),
+                    imageSize: new AMap.Size(25, 34)
+                  })
+                });
+              }
+              
+              selectedLat = lat;
+              selectedLon = lon;
+              
+              document.getElementById('coord-display').textContent = 
+                `纬度: ${lat.toFixed(6)}, 经度: ${lon.toFixed(6)}`;
+              document.getElementById('confirm-btn').disabled = false;
+              
+              showToast('✅ 定位成功，坐标已纠偏');
+            } else {
+              console.error('❌ 坐标转换失败:', result);
+              showToast('坐标转换失败', true);
+            }
+          });
+        },
+        function(error) {
+          console.error('❌ 定位失败:', error);
+          showToast('定位失败: ' + error.message, true);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
-      });
-    });
+      );
+    } else {
+      showToast('您的浏览器不支持地理定位', true);
+    }
   }
   
   function confirmLocation() {
