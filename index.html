@@ -2,13 +2,21 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>选择位置</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>选择位置 - 卫星地图版</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #0f172a; color: #e2e8f0; font-family: "Segoe UI", "PingFang SC", sans-serif; }
   
-  /* 头部样式 */
+  /* 使用 dvh 解决移动端地址栏高度跳动问题 */
+  html, body { 
+    margin: 0; 
+    height: 100dvh; 
+    overflow: hidden; 
+    background: #0f172a; 
+    color: #e2e8f0; 
+    font-family: -apple-system, "Helvetica Neue", "PingFang SC", sans-serif; 
+  }
+  
   .header {
     background: rgba(30, 41, 59, 0.95);
     padding: 16px 20px;
@@ -18,74 +26,75 @@
     position: relative;
     backdrop-filter: blur(10px);
   }
-  h1 { font-size: 1.2em; margin: 0; color: #fff; letter-spacing: 1px; }
-  .info { font-size: 0.8em; color: #94a3b8; margin-top: 5px; }
+  h1 { font-size: 1.1em; margin: 0; color: #fff; letter-spacing: 1px; }
+  .info { font-size: 0.75em; color: #94a3b8; margin-top: 4px; }
 
   /* 地图容器 */
-  #map { width: 100%; height: calc(100% - 140px); }
+  #map { 
+    width: 100%; 
+    height: calc(100% - 140px); 
+    background: #1e293b; /* 渲染前的占位色 */
+  }
 
-  /* 底部控件 */
   .controls {
     position: fixed; bottom: 0; left: 0; width: 100%;
     background: rgba(15, 23, 42, 0.95);
-    padding: 20px;
+    padding: 15px 20px 25px 20px;
     border-top: 1px solid rgba(255,255,255,0.1);
     z-index: 100;
     display: flex; flex-direction: column; gap: 12px;
     backdrop-filter: blur(10px);
     box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
   }
+  
   .coord-display {
-    font-size: 13px; color: #cbd5e1; text-align: center;
-    background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.05);
+    font-size: 12px; color: #cbd5e1; text-align: center;
+    background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    font-family: monospace;
   }
-  .btn-group { display: flex; gap: 12px; }
+  
+  .btn-group { display: flex; gap: 10px; }
+  
   button {
     flex: 1; padding: 14px; border: none; border-radius: 10px;
     font-weight: 600; cursor: pointer; transition: all 0.2s;
     font-size: 15px;
+    -webkit-tap-highlight-color: transparent;
   }
   
-  /* 确认按钮 */
   .confirm-btn { 
     background: linear-gradient(135deg, #3b82f6, #2563eb); 
     color: white; 
     box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    flex: 1.4;
   }
-  .confirm-btn:active { transform: scale(0.98); }
+  .confirm-btn:active { transform: scale(0.96); opacity: 0.9; }
   .confirm-btn:disabled { 
     background: #475569; color: #94a3b8; 
-    box-shadow: none; cursor: not-allowed; opacity: 0.7;
+    box-shadow: none; cursor: not-allowed; opacity: 0.6;
   }
 
-  /* 纠偏切换按钮 */
   .fix-btn { 
     background: rgba(255,255,255,0.1); 
     color: #e2e8f0; 
-    border: 1px solid rgba(255,255,255,0.1);
-    flex: 0.6; /* 让确认按钮宽一点 */
+    border: 1px solid rgba(255,255,255,0.2);
   }
-  .fix-btn:active { background: rgba(255,255,255,0.2); }
 
-  /* 定位按钮 */
   .locate-btn {
-    position: fixed; bottom: 170px; right: 20px;
-    width: 48px; height: 48px; border-radius: 50%;
+    position: fixed; bottom: 180px; right: 20px;
+    width: 44px; height: 44px; border-radius: 50%;
     background: #3b82f6; color: white; border: none;
     box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    font-size: 22px; z-index: 99; cursor: pointer;
+    font-size: 20px; z-index: 99; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: transform 0.2s;
   }
-  .locate-btn:active { transform: scale(0.9); }
 
-  /* 提示框 */
   .toast {
     position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.85); color: white; padding: 10px 24px;
-    border-radius: 30px; font-size: 14px; opacity: 0; pointer-events: none;
-    transition: opacity 0.3s; z-index: 9999; backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.8); color: white; padding: 8px 20px;
+    border-radius: 20px; font-size: 13px; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s; z-index: 9999;
   }
 </style>
 
@@ -95,15 +104,15 @@
 
 <div class="header">
   <h1>选择位置</h1>
-  <div class="info">点击地图选点，如位置偏离请点击“切换纠偏”</div>
+  <div class="info">卫星模式：若偏离请点“切换纠偏”</div>
 </div>
 
 <div id="map"></div>
 
-<button class="locate-btn" onclick="startLocation()" title="重新定位">📍</button>
+<button class="locate-btn" onclick="startLocation()">📍</button>
 
 <div class="controls">
-  <div class="coord-display" id="coord-display">正在获取位置...</div>
+  <div class="coord-display" id="coord-display">正在初始化卫星地图...</div>
   <div class="btn-group">
     <button class="fix-btn" onclick="toggleCorrection()">切换纠偏</button>
     <button class="confirm-btn" id="confirm-btn" onclick="confirmLocation()" disabled>确认并开始</button>
@@ -113,16 +122,14 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // --- 全局变量 ---
   let map, marker, userMarker;
   let selectedLat, selectedLon;
-  let rawUserLat, rawUserLon; // 原始定位坐标
-  let isCorrected = true; // 默认开启纠偏(WGS84->GCJ02)
+  let rawUserLat, rawUserLon;
+  let isCorrected = true; 
 
-  // 默认中心点 (如果没有定位到，显示这里)
-  const DEFAULT_POS = [118.912787, 32.103828]; // 南京大学附近
+  const DEFAULT_POS = [118.912787, 32.103828];
 
-  // --- 纯数学纠偏算法 (WGS84 转 GCJ02) ---
+  // --- WGS84 转 GCJ02 算法 ---
   const PI = 3.1415926535897932384626;
   const a = 6378245.0;
   const ee = 0.00669342162296594323;
@@ -144,7 +151,7 @@
   }
 
   function wgs84ToGcj02(lat, lon) {
-    if (outOfChina(lat, lon)) return [lon, lat];
+    if (lon < 72.004 || lon > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lon, lat];
     let dLat = transformLat(lon - 105.0, lat - 35.0);
     let dLon = transformLon(lon - 105.0, lat - 35.0);
     let radLat = lat / 180.0 * PI;
@@ -153,150 +160,108 @@
     let sqrtMagic = Math.sqrt(magic);
     dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * PI);
     dLon = (dLon * 180.0) / (a / sqrtMagic * Math.cos(radLat) * PI);
-    return [lon + dLon, lat + dLat]; // 返回 [lng, lat]
+    return [lon + dLon, lat + dLat];
   }
 
-  function outOfChina(lat, lon) {
-    if (lon < 72.004 || lon > 137.8347) return true;
-    if (lat < 0.8293 || lat > 55.8271) return true;
-    return false;
-  }
-
-  // --- 页面逻辑 ---
+  // --- 地图逻辑 ---
 
   window.onload = function() {
     initMap();
-    startLocation(); // 页面加载后自动开始定位
+    startLocation();
   };
 
   function initMap() {
+    // 实例化卫星图层和路网图层
+    const satelliteLayer = new AMap.TileLayer.Satellite();
+    const roadNetLayer = new AMap.TileLayer.RoadNet();
+
     map = new AMap.Map("map", {
-      viewMode: "3D",
-      zoom: 16,
+      viewMode: "2D", // 强制 2D 模式，解决移动端白屏
+      zoom: 17,
       center: DEFAULT_POS,
-      mapStyle: "amap://styles/dark",
+      layers: [satelliteLayer, roadNetLayer] // 加载卫星+路网
     });
 
-    // 点击地图选点事件
     map.on('click', function(e) {
       updateSelectedPosition(e.lnglat.getLat(), e.lnglat.getLng());
     });
+
+    // 解决容器尺寸变化导致的渲染问题
+    map.on('complete', () => {
+      map.resize();
+    });
   }
 
-  // 核心定位逻辑
   function startLocation() {
-    showToast("正在获取GPS信号...");
-    document.getElementById('coord-display').textContent = "正在定位...";
-
+    showToast("请求定位中...");
     if (!navigator.geolocation) {
-      showToast("您的浏览器不支持定位");
+      showToast("浏览器不支持定位");
+      fallbackIpLocation();
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       function(position) {
-        // 1. 获取浏览器原始坐标 (WGS84)
         rawUserLat = position.coords.latitude;
         rawUserLon = position.coords.longitude;
-        const accuracy = position.coords.accuracy;
-
-        console.log("原始坐标(WGS84):", rawUserLat, rawUserLon, "精度:", accuracy);
-
-        // 2. 应用算法并显示
-        applyLocationToMap(accuracy);
+        applyLocationToMap();
       },
       function(error) {
-        console.error(error);
-        let msg = "定位失败";
-        switch(error.code) {
-          case 1: msg = "用户拒绝了定位权限"; break;
-          case 2: msg = "无法获取位置(请打开GPS)"; break;
-          case 3: msg = "定位超时"; break;
-        }
-        showToast(msg);
-        
-        // 失败后尝试使用高德 IP 定位作为备选（不需要纠偏）
+        showToast("GPS定位失败，尝试网络定位");
         fallbackIpLocation();
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   }
 
-  // IP 定位备选
   function fallbackIpLocation() {
-    showToast("切换至网络定位...");
     AMap.plugin('AMap.Geolocation', function() {
-      const geolocation = new AMap.Geolocation({
-        enableHighAccuracy: false, 
-        timeout: 5000,
-      });
+      const geolocation = new AMap.Geolocation({ enableHighAccuracy: false, timeout: 5000 });
       geolocation.getCurrentPosition(function(status, result) {
         if (status === 'complete') {
-          isCorrected = false; // IP定位结果已经是GCJ02，无需数学纠偏
+          isCorrected = false; 
           rawUserLat = result.position.lat;
           rawUserLon = result.position.lng;
-          applyLocationToMap(result.accuracy || 100);
+          applyLocationToMap();
         } else {
-          showToast("定位完全失败，请手动选点");
-          document.getElementById('coord-display').textContent = "定位失败，请点击地图选择";
+          document.getElementById('coord-display').textContent = "定位失败，请手动点击地图选点";
         }
       });
     });
   }
 
-  // 将计算后的坐标应用到地图
-  function applyLocationToMap(accuracy) {
+  function applyLocationToMap() {
     let finalLat = rawUserLat;
     let finalLon = rawUserLon;
 
-    // 如果开启了纠偏(默认开启)，应用数学公式
     if (isCorrected) {
       const gcj = wgs84ToGcj02(rawUserLat, rawUserLon);
       finalLon = gcj[0];
       finalLat = gcj[1];
     }
 
-    // 1. 绘制“我的位置”蓝点
     if (!userMarker) {
       userMarker = new AMap.Marker({
         map: map,
-        content: '<div style="width:16px;height:16px;background:#3b82f6;border:2px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(59,130,246,0.5);"></div>',
-        anchor: 'center',
-        offset: new AMap.Pixel(0, 0)
+        content: '<div style="width:18px;height:18px;background:#3b82f6;border:2px solid #fff;border-radius:50%;box-shadow:0 0 12px #3b82f6;"></div>',
+        anchor: 'center'
       });
     }
     userMarker.setPosition([finalLon, finalLat]);
-    
-    // 2. 移动地图中心
     map.setCenter([finalLon, finalLat]);
-    map.setZoom(17);
-
-    // 3. 自动将“我的位置”设为“选中点”
     updateSelectedPosition(finalLat, finalLon);
-    
-    showToast(`定位成功 (${isCorrected ? '已纠偏' : '原始'})`);
+    showToast(isCorrected ? "已应用纠偏" : "定位成功");
   }
 
-  // 手动切换纠偏模式 (解决部分浏览器自带纠偏导致二次偏移的问题)
   function toggleCorrection() {
-    if (!rawUserLat) {
-      showToast("请先等待定位完成");
-      return;
-    }
-    isCorrected = !isCorrected; 
-    applyLocationToMap(0); 
+    if (!rawUserLat) return showToast("等待定位中");
+    isCorrected = !isCorrected;
+    applyLocationToMap();
   }
 
-  // 更新选中点 UI
   function updateSelectedPosition(lat, lon) {
     selectedLat = lat;
     selectedLon = lon;
-
-    // 移动红点标记
     if (!marker) {
       marker = new AMap.Marker({
         map: map,
@@ -305,32 +270,22 @@
           size: new AMap.Size(25, 34),
           imageSize: new AMap.Size(25, 34)
         }),
-        offset: new AMap.Pixel(-12.5, -34),
+        offset: new AMap.Pixel(-12, -34),
         animation: 'AMAP_ANIMATION_DROP'
       });
     }
     marker.setPosition([lon, lat]);
-
-    // 更新文字
-    document.getElementById('coord-display').innerHTML = 
-      `纬度: ${lat.toFixed(6)} | 经度: ${lon.toFixed(6)}`;
-    
+    document.getElementById('coord-display').innerHTML = `纬:${lat.toFixed(6)} | 经:${lon.toFixed(6)}`;
     document.getElementById('confirm-btn').disabled = false;
   }
 
-  // --- 这里修复了核心跳转功能 ---
   function confirmLocation() {
-    if (selectedLat && selectedLon) {
-      // 按钮变更为加载状态
-      const btn = document.getElementById('confirm-btn');
-      btn.textContent = '正在跳转...';
-      btn.disabled = true;
-      
-      // 执行跳转，携带参数
-      setTimeout(() => {
-        window.location.href = `run.html?lat=${selectedLat}&lon=${selectedLon}`;
-      }, 200);
-    }
+    const btn = document.getElementById('confirm-btn');
+    btn.textContent = '跳转中...';
+    btn.disabled = true;
+    setTimeout(() => {
+      window.location.href = `run.html?lat=${selectedLat}&lon=${selectedLon}`;
+    }, 300);
   }
 
   function showToast(msg) {
@@ -339,7 +294,6 @@
     el.style.opacity = '1';
     setTimeout(() => { el.style.opacity = '0'; }, 2000);
   }
-
 </script>
 </body>
 </html>
