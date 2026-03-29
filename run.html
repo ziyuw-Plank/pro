@@ -118,7 +118,7 @@ async function startApp() {
 }
 
 async function loadCars(lat, lon) {
-  const target = `https://newmapi.7mate.cn/api/new/surrounding/car?latitude=${lat}&longitude=${lon}`;
+  const target = `https://newmapi.7mate.cn/api/v1/new/surrounding/car?latitude=${lat}&longitude=${lon}`;
   const proxyUrl = `https://cors-prfunction-yoolvkcvju.cn-hangzhou.fcapp.run?url=${encodeURIComponent(target)}`;
 
   try {
